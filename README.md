@@ -44,7 +44,7 @@ The MCP client authenticates with Amazon Cognito and uses the resulting access t
 | AgentCore Gateway | Exposes Lambda functions as MCP tools |
 | Amazon Cognito | Issues OAuth 2.0 access tokens |
 | AWS Lambda | Implements calorie estimation and recipe suggestions |
-| Amazon Bedrock Nova Lite | Provides model inference |
+| Amazon Bedrock Nova Pro | Provides model inference for the published Strands agent |
 | AWS Systems Manager / Secrets Manager | Stores configuration and credentials |
 
 ## Implementation and Validation
@@ -76,11 +76,13 @@ The projection distinguishes observed measurements from assumptions and modeled 
 
 ## Repository Scope
 
-This repository publicly documents the architecture, implementation process, validation results, and cost analysis of the AgentCore Gateway MCP integration lab.
+This repository is a technical implementation and validation reference for the AgentCore Gateway MCP integration lab. It includes the published [AgentCore Runtime application](app/README.md), [Gateway and Runtime integration scripts](lab-scripts/README.md), validation results, and telemetry-informed cost analysis.
 
-The original executable implementation and lab scripts have been preserved separately in a private Git snapshot. The AWS-provided starter code is not redistributed here because explicit redistribution permissions were not established.
+The original implementation used a hybrid workflow: Python application code and scripts were combined with AWS resources, service configuration, and manual development-environment interactions that are not represented as a single deployment system in this repository.
 
-The documentation describes the implementation that was executed and tested; it does not claim that this public repository is a standalone deployable application.
+The published code makes the implementation inspectable; it is not a tutorial, infrastructure-as-code template, or self-contained environment-recreation package. The validation documentation records what was observed in the completed lab and preserves the distinction between implementation behavior and independently verified outcomes.
+
+The application configures the Amazon Nova Pro inference profile `us.amazon.nova-pro-v1:0`. The cost projection separately uses Amazon Nova Lite reference pricing as a modeling assumption; the recorded aggregate Bedrock telemetry was not isolated by model.
 
 ## References
 
