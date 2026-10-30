@@ -6,7 +6,7 @@ A documented implementation and validation study of integrating a Strands-based 
 
 This project was developed during the AWS Skill Builder lab **Integrate Agents with MCP Servers and Tools using AgentCore Gateway**.
 
-The exercise demonstrates how an AI agent can discover and invoke tools exposed through an MCP-compatible gateway, using OAuth 2.0 client credentials for gateway access.
+The exercise demonstrates how an AI agent can discover and invoke tools exposed through an MCP-compatible gateway, using OAuth 2.0 client credentials for gateway authentication.
 
 ## Architecture
 
@@ -23,6 +23,8 @@ Strands Agent
   |-- MCP Client
         |
         |-- Cognito OAuth 2.0 / M2M
+        |   (access token)
+        |
         v
     AgentCore Gateway
         |
@@ -30,6 +32,8 @@ Strands Agent
         |
         |-- suggest_recipes   --> AWS Lambda --> Amazon Bedrock
 ```
+
+The MCP client authenticates with Amazon Cognito and uses the resulting access token to communicate with AgentCore Gateway. The Gateway exposes two Lambda-backed tools that invoke Amazon Bedrock for calorie estimation and recipe suggestions.
 
 ## Components
 
@@ -54,25 +58,29 @@ The lab included:
 5. Testing natural-language requests and multi-tool interactions.
 6. Collecting CloudWatch telemetry for a production cost projection.
 
-Gateway tool discovery and direct tool invocation were validated. Agent Runtime invocation also succeeded.
+Gateway tool discovery and direct tool invocation were validated. AgentCore Runtime invocation also succeeded.
 
 Session ID reuse was tested, but persistent conversational memory was not independently demonstrated.
 
+### Validation Evidence
+
+Detailed validation results, observed behavior, execution metrics, and verification limitations are documented in [Validation Results](docs/validation-results.md).
+
+The validation distinguishes confirmed infrastructure and tool execution from agent-generated claims that were not independently verified.
+
 ## Cost Analysis
 
-The project includes a telemetry-informed production cost projection using observed Lambda durations and aggregate Amazon Bedrock token metrics.
+The project includes a [Telemetry-Informed Production Cost Projection](docs/telemetry-informed-production-cost-projection.md) based on observed Lambda execution durations, aggregate Amazon Bedrock token metrics, workload assumptions, and estimated AWS pricing.
 
-The projection distinguishes observed measurements from workload assumptions and estimated AWS pricing.
-
-See `docs/telemetry-informed-production-cost-projection.md` once published.
+The projection distinguishes observed measurements from assumptions and modeled costs. It is not an AWS billing statement.
 
 ## Repository Scope
 
-This repository documents the integration, architecture, validation results, and engineering analysis.
+This repository publicly documents the architecture, implementation process, validation results, and cost analysis of the AgentCore Gateway MCP integration lab.
 
-AWS-provided lab starter code and environment-specific deployment configuration are excluded from the public repository pending confirmation of redistribution permissions.
+The original executable implementation and lab scripts have been preserved separately in a private Git snapshot. The AWS-provided starter code is not redistributed here because explicit redistribution permissions were not established.
 
-No live credentials or secrets are intended to be published.
+The documentation describes the implementation that was executed and tested; it does not claim that this public repository is a standalone deployable application.
 
 ## References
 
