@@ -30,7 +30,7 @@ client_id = None
 def init_config(verbose=True):
     """Initialize configuration from SSM Parameter Store."""
     global agent_arn, client_id
-    
+
     # Get agent ARN from SSM Parameter Store
     try:
         response = ssm_client.get_parameter(Name='/personal-agent/agent-arn')
@@ -46,7 +46,7 @@ def init_config(verbose=True):
         if verbose:
             print(f"⚠️  SSM lookup issue: {e}")
         agent_arn = _discover_agent_arn(verbose)
-    
+
     # Get Cognito client ID from SSM Parameter Store
     try:
         response = ssm_client.get_parameter(Name='/personal-agent/cognito/client-id')
@@ -160,12 +160,12 @@ def invoke_agent(prompt, session_id, auth_token, verbose=False):
         full_arn = f"arn:aws:bedrock-agentcore:{REGION_NAME}:{account_id}:agent-runtime/{agent_arn.strip()}"
         escaped_arn = urllib.parse.quote(full_arn, safe='')
         url = f"https://bedrock-agentcore.{REGION_NAME}.amazonaws.com/runtimes/{escaped_arn}/invocations?qualifier=DEFAULT"
-    
+
     if verbose:
         print(f"🔗 Invoking agent: {agent_arn}")
-    
+
     payload = json.dumps({"prompt": prompt})
-    
+
     # First attempt: Bearer token (for JWT/OAuth-configured agents)
     headers = {
         "Content-Type": "application/json",
@@ -173,25 +173,25 @@ def invoke_agent(prompt, session_id, auth_token, verbose=False):
         "X-Amzn-Bedrock-AgentCore-Runtime-Session-Id": session_id,
         "X-Amzn-Trace-Id": secrets.token_hex(17)
     }
-    
+
     response = requests.post(url, headers=headers, data=payload, stream=True)
-    
+
     # Handle 403 auth mismatch — agent likely expects SigV4 (default IAM auth)
     if response.status_code == 403 and "Authorization method mismatch" in response.text:
         session = boto3.Session(region_name=REGION_NAME)
         credentials = session.get_credentials().get_frozen_credentials()
-        
+
         sigv4_headers = {
             "Content-Type": "application/json",
             "X-Amzn-Bedrock-AgentCore-Runtime-Session-Id": session_id,
             "X-Amzn-Trace-Id": secrets.token_hex(17)
         }
-        
+
         aws_request = AWSRequest(method='POST', url=url, data=payload, headers=sigv4_headers)
         SigV4Auth(credentials, 'bedrock-agentcore', REGION_NAME).add_auth(aws_request)
-        
+
         response = requests.post(url, headers=dict(aws_request.headers), data=payload, stream=True)
-    
+
     # Handle 401 - token expired, retry with fresh token
     if response.status_code == 401:
         if verbose:
@@ -201,7 +201,7 @@ def invoke_agent(prompt, session_id, auth_token, verbose=False):
         response = requests.post(url, headers=headers, data=payload, stream=True)
         if verbose:
             print("✅ Retried with fresh token")
-    
+
     # Handle 404 - agent not found (stale ARN after redeployment)
     if response.status_code == 404:
         if refresh_agent_arn_on_404(verbose):
@@ -215,13 +215,13 @@ def invoke_agent(prompt, session_id, auth_token, verbose=False):
                 full_arn = f"arn:aws:bedrock-agentcore:{REGION_NAME}:{account_id}:agent-runtime/{agent_arn.strip()}"
                 escaped_arn = urllib.parse.quote(full_arn, safe='')
                 url = f"https://bedrock-agentcore.{REGION_NAME}.amazonaws.com/runtimes/{escaped_arn}/invocations?qualifier=DEFAULT"
-            
+
             if verbose:
                 print(f"🔄 Retrying with updated ARN: {agent_arn}")
             # Retry with Bearer first
             headers["X-Amzn-Trace-Id"] = secrets.token_hex(17)
             response = requests.post(url, headers=headers, data=payload, stream=True)
-            
+
             # If still auth mismatch, try SigV4
             if response.status_code == 403 and "Authorization method mismatch" in response.text:
                 session = boto3.Session(region_name=REGION_NAME)
@@ -234,10 +234,10 @@ def invoke_agent(prompt, session_id, auth_token, verbose=False):
                 aws_request = AWSRequest(method='POST', url=url, data=payload, headers=sigv4_headers)
                 SigV4Auth(credentials, 'bedrock-agentcore', REGION_NAME).add_auth(aws_request)
                 response = requests.post(url, headers=dict(aws_request.headers), data=payload, stream=True)
-    
+
     if response.status_code != 200:
         raise Exception(f"Agent invocation failed with status {response.status_code}: {response.text}")
-    
+
     # Collect streaming response
     content = []
     for line in response.iter_lines():
@@ -260,7 +260,7 @@ def invoke_agent(prompt, session_id, auth_token, verbose=False):
                     if verbose:
                         print(data_str, end='', flush=True)
                     content.append(data_str)
-    
+
     return "".join(content)
 
 def main():
@@ -270,7 +270,7 @@ def main():
         init_config(verbose=True)
     except Exception:
         exit(1)
-    
+
     # Get Cognito token
     try:
         auth_token = get_cognito_token()
@@ -278,11 +278,11 @@ def main():
     except Exception as e:
         print(f"❌ Failed to get Cognito token: {e}")
         exit(1)
-    
+
     # Parse arguments for session ID and prompt
     session_id = None
     prompt = None
-    
+
     args = sys.argv[1:]
     if "--session-id" in args:
         idx = args.index("--session-id")
@@ -293,26 +293,26 @@ def main():
         else:
             print("⚠️  --session-id requires a value")
             exit(1)
-    
+
     # Remaining args are the prompt
     if args:
         prompt = " ".join(args)
     else:
         prompt = "I had oatmeal with berries for breakfast at 8am"
-    
+
     # Generate session ID if not provided
     if not session_id:
         session_id = secrets.token_hex(20)
         print(f"Generated new session ID: {session_id}")
-    
+
     print(f"\n💬 Prompt: {prompt}\n")
-    
+
     # Invoke agent
     try:
         print("=== Agent Response ===\n")
         response = invoke_agent(prompt, session_id, auth_token, verbose=True)
         print("\n\n=== End of Response ===")
-        
+
         if response:
             print(f"\n✅ Received {len(response)} characters")
             print(f"💾 Session ID: {session_id}")
