@@ -1,0 +1,30 @@
+# Credentials and environment files
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Environment-specific AWS configuration
+config/aws-targets.json
+config/agentcore.json
+
+# Runtime and deployment state
+deployed-state.json
+.aws/
+.cli/
+cdk.out/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Node
+node_modules/
+
+# Local files
+.DS_Store
+*.log
